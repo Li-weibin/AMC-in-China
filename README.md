@@ -85,7 +85,7 @@ To run the demo on the provided data, follow these steps:
 3. **Load and Install Dependencies**:  
    Open the relevant script file from each folder and run the initial part of the script to install required packages:
    ```r
-   install.packages(c("tidyverse", "readxl", "patchwork"))
+   install.packages(c("tidyverse", "readxl", "patchwork", "ggprism"))
    library(tidyverse)
    library(readxl)
    library(patchwork)
