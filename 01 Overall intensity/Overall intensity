@@ -1,0 +1,106 @@
+library(tidyverse)
+library(readxl)
+library(patchwork)
+library(ggprism)
+
+# 1 Data ----
+AMC_all <- read_xlsx("Weibin_SourceData_Fig1.xlsx", sheet = 1)
+AMC_region <- read_xlsx("Weibin_SourceData_Fig1.xlsx", sheet = 2)
+AMC_level <- read_xlsx("Weibin_SourceData_Fig1.xlsx", sheet = 3)
+
+# 2 Background ----
+Background <-
+  AMC_all %>% 
+  mutate(Q1 = Quarter == "Q1") %>% 
+  ggplot(aes(x = ym(TimeID), y = `DDDs per 100 patient-days`)) +
+  annotate(
+    "rect", alpha = 0.5, fill = "gray70",
+    xmin = ym(202001), xmax = ym(202301),
+    ymin = -Inf, ymax = Inf) +
+  annotate(
+    "text", label = "COVID-19\npandemic",
+    x = ym(202107), y = Inf, color = "black", 
+    family = "serif", lineheight = 0.7, 
+    hjust = 0.5, vjust = 1.2) +
+  scale_x_date(
+    expand = expansion(c(0.02, 0.02)),
+    date_labels = "%Y", 
+    breaks = seq(ym(201303), ym(202409), "1 year"),
+    date_minor_breaks = "3 months") +
+  labs(x = "", y = "") +
+  theme(
+    legend.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12),
+    strip.background = element_rect(colour = "grey85", fill = "grey85"),
+    panel.background = element_rect(fill = "grey95"),
+    axis.ticks.length.x = unit(0.15, "cm"),
+    axis.title = element_text(size = 12),
+    text = element_text(family = 'serif')) +
+  guides(
+    x = guide_prism_minor(),
+    y = guide_prism_minor())
+
+# 3 facets ----
+plot_all <-
+  Background + 
+  labs(y = "Antibiotic use intensity (DDDs per 100 patient-days)") +
+  geom_line() +
+  geom_point(
+    aes(group = Q1, colour = Q1), size = 3) +
+  scale_y_continuous(
+    breaks = seq(0, 50, 2),
+    expand = c(0.2, 0.2)) +
+  scale_color_manual(
+    name = "Quarter",
+    breaks = c(T, F),
+    values = c("#D7191C", "grey20"),
+    labels = c("Q1", "Q2/Q3/Q4")) +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.85, 0.85))
+
+plot_region <-
+  Background %+% AMC_region +
+  geom_point(
+    aes(colour = zone), key_glyph = "timeseries") +
+  geom_line(
+    aes(colour = zone), key_glyph = "timeseries") +
+  scale_colour_manual(
+    name = "Region",
+    values = c("#040676", "#397FC7", "#F1B656")) +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.92, 0.85))
+
+plot_level <-
+  Background %+% AMC_level +
+  geom_point(
+    aes(colour = HosLevel), key_glyph = "timeseries", 
+    stat = "summary", fun = "median") +
+  geom_line(
+    aes(colour = HosLevel), key_glyph = "timeseries", 
+    stat = "summary", fun = "median") +
+  scale_colour_manual(
+    name = "Hospital level", 
+    values = c("#C3B0D2", "#D4242A")) +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.85, 0.75))
+
+# 4 patchwork ----
+ggsave(
+  "Weibin_Fig1.png",
+  width = 12, height = 8, dpi = 300, 
+  plot = 
+    plot_all + (plot_region / plot_level) +
+    plot_layout(widths = c(1.2, 1)) +
+    plot_annotation(tag_levels = 'A') & 
+    theme(
+      axis.text.x = element_text(hjust = 0.2, size = 10),
+      axis.text.y = element_text(size = 12),
+      axis.title = element_text(size = 16),
+      panel.grid.minor.x = element_blank(),
+      axis.line = element_line(),
+      plot.margin = margin(r = 10),
+      plot.tag = element_text(size = 25, face = "bold")))
