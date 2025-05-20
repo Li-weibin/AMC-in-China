@@ -1,6 +1,6 @@
 library(tidyverse)
 library(readxl)
-library(patchwork)
+library(cowplot)
 library(ggh4x)
 library(ggprism)
 
@@ -109,7 +109,7 @@ plot_all <-
     ))
 
 # 3 Region ----
-plt_region <-
+plot_region <-
   AMC_region %>%
   mutate(
     scale = case_when(
