@@ -1,1 +1,313 @@
-1
+library(tidyverse)
+library(readxl)
+library(patchwork)
+library(ggh4x)
+library(ggprism)
+
+# 1 Data ----
+AMC_all <- read_xlsx("Weibin_SourceData_Fig2.xlsx", sheet = 1)
+AMC_region <- read_xlsx("Weibin_SourceData_Fig2.xlsx", sheet = 2)
+AMC_level <- read_xlsx("Weibin_SourceData_Fig2.xlsx", sheet = 3)
+
+# 2 Total ----
+plot_all <-
+  AMC_all %>% 
+  mutate(
+    Q1 = Quarter == "Q1",
+    scale = case_when(
+      AWaRe == "Access" ~ 0.4789697,
+      AWaRe == "Watch" ~ 0.4798552,
+      AWaRe == "Reserve" ~ 0.4965678,
+      T ~ 0.4968939)) %>% 
+  ggplot(aes(x = ym(TimeID), group = AWaRe)) +
+  annotate(
+    "rect", alpha = 0.5, fill = "gray70",
+    xmin = ym(202001), xmax = ym(202301),
+    ymin = -Inf, ymax = Inf) +
+  annotate(
+    "text", label = "COVID-19\npandemic",
+    x = ym(202107), y = Inf, color = "black", 
+    family = "serif", lineheight = 0.7, 
+    hjust = 0.5, vjust = 1.2) +
+  geom_bar(
+    aes(y = `DDDs per 100 patient-days`, 
+        group = Q1, fill = Q1),
+    stat = "summary", fun = "median",
+    position = position_dodge()) +
+  geom_line(
+    aes(y = `Propotion of consumption (%)` * scale)) +
+  geom_point(
+    aes(y = `Propotion of consumption (%)` * scale,
+        group = Q1, colour = Q1), size = 1) +
+  scale_color_manual(
+    name = "Quarter",
+    breaks = c(T, F),
+    values = c("#D7191C", "grey20"),
+    labels = c("Q1", "Q2/Q3/Q4")) +
+  guides(colour = "none") +
+  scale_fill_manual(
+    name = "Quarter",
+    breaks = c(T, F),
+    values = c("#D7191C", "grey60"),
+    labels = c("Q1", "Q2/Q3/Q4")) +
+  labs(
+    x = "", 
+    y = "Antibiotic use intensity (DDDs per 100 patient-days)") +
+  facet_wrap(~ AWaRe, ncol = 1, scales = "free_y") +
+  scale_x_date(
+    expand = expansion(c(0.01, 0.01)),
+    date_labels = "%Y", 
+    breaks = seq(ym(201303), ym(202409), "1 year"),
+    date_minor_breaks = "3 months") +
+  theme(
+    legend.position = "bottom",
+    legend.background = element_rect(fill = NA, colour = "black"),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12),
+    strip.text =  element_text(size = 18),
+    axis.ticks.length.x = unit(0.15, "cm"),
+    axis.title = element_text(size = 25),
+    axis.text = element_text(hjust = 0.2),
+    strip.background = element_rect(colour = "grey85", fill = "grey85"),
+    panel.background = element_rect(fill = "grey95"),
+    panel.grid.minor.x = element_blank(),
+    axis.line = element_line(),
+    text = element_text(family = 'serif')) +
+  guides(
+    x = guide_prism_minor(),
+    y = guide_prism_minor()) +
+  facetted_pos_scales(
+    y = list(
+      AWaRe == "Access" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 10, 2),
+        sec.axis = sec_axis(
+          ~ ./0.4789697, 
+          breaks = seq(12, 24, 3),
+          name = "")),
+      AWaRe == "Watch" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 28, 7),
+        sec.axis = sec_axis(
+          ~ ./0.4798552, 
+          breaks = seq(60, 75, 5),
+          name = "")),
+      AWaRe == "Reserve" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 0.5, 0.1),
+        sec.axis = sec_axis(
+          ~ ./0.4965678, 
+          breaks = seq(0.3, 0.9, 0.2),
+          name = "")),
+      AWaRe == "Not-recommended" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 6, 2),
+        sec.axis = sec_axis(
+          ~ ./0.4968939, 
+          breaks = seq(6, 15, 2),
+          name = ""))
+    ))
+
+# 3 Region ----
+plt_region <-
+  AMC_region %>%
+  mutate(
+    scale = case_when(
+      AWaRe == "Access" ~ 0.7030312,
+      AWaRe == "Watch" ~ 0.5489091,
+      AWaRe == "Reserve" ~ 1.82401,
+      T ~ 0.6359099)) %>% 
+  ggplot(aes(x = ym(TimeID))) +
+  annotate(
+    "rect", alpha = 0.5, fill = "gray70",
+    xmin = ym(202001), xmax = ym(202301),
+    ymin = -Inf, ymax = Inf) +
+  annotate(
+    "text", label = "COVID-19\npandemic",
+    x = ym(202107), y = Inf, color = "black", 
+    family = "serif", lineheight = 0.7, 
+    hjust = 0.5, vjust = 1.2) +
+  geom_bar(
+    aes(y = `DDDs per 100 patient-days`, 
+        group = zone, fill = zone),
+    stat = "summary", fun = "median",
+    position = position_dodge()) +
+  geom_line(
+    aes(y = `Propotion of consumption (%)` * scale, colour = zone)) +
+  geom_point(
+    aes(y = `Propotion of consumption (%)` * scale,
+        group = zone, colour = zone), size = 0.8) +
+  scale_colour_manual(
+    name = "Region",
+    values = c("#040676", "#397FC7", "#F1B656")) +
+  scale_fill_manual(
+    name = "Region",
+    values = c("#040676", "#397FC7", "#F1B656")) +
+  labs(x = "", y = "") +
+  facet_wrap(~ AWaRe, ncol = 1, scales = "free_y") +
+  scale_x_date(
+    expand = expansion(c(0.01, 0.01)),
+    date_labels = "%Y", 
+    breaks = seq(ym(201303), ym(202409), "1 year"),
+    date_minor_breaks = "3 months") +
+  theme(
+    legend.position = "bottom",
+    legend.background = element_rect(fill = NA, colour = "black"),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12),
+    strip.text =  element_text(size = 18),
+    axis.ticks.length.x = unit(0.15, "cm"),
+    axis.title = element_text(size = 25),
+    axis.text = element_text(hjust = 0.2),
+    strip.background = element_rect(colour = "grey85", fill = "grey85"),
+    panel.background = element_rect(fill = "grey95"),
+    panel.grid.minor.x = element_blank(),
+    axis.line = element_line(),
+    text = element_text(family = 'serif')) +
+  guides(
+    x = guide_prism_minor(),
+    y = guide_prism_minor()) +
+  facetted_pos_scales(
+    y = list(
+      AWaRe == "Access" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 12, 4),
+        sec.axis = sec_axis(
+          ~ ./0.7030312, 
+          breaks = seq(12, 24, 6),
+          name = "")),
+      AWaRe == "Watch" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 30, 5),
+        sec.axis = sec_axis(
+          ~ ./0.5489091, 
+          breaks = seq(55, 80, 10),
+          name = "")),
+      AWaRe == "Reserve" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 0.5, 0.2),
+        sec.axis = sec_axis(
+          ~ ./1.82401, 
+          name = "")),
+      AWaRe == "Not-recommended" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 6, 2),
+        sec.axis = sec_axis(
+          ~ ./0.6359099, 
+          name = ""))
+    ))
+
+# 4 Hospital tier ----
+plot_level <-
+  AMC_level %>% 
+  mutate(
+    scale = case_when(
+      AWaRe == "Access" ~ 0.6668334,
+      AWaRe == "Watch" ~ 0.5608782,
+      AWaRe == "Reserve" ~ 1.775759,
+      T ~ 0.5977857)) %>% 
+  ggplot(aes(x = ym(TimeID))) +
+  annotate(
+    "rect", alpha = 0.5, fill = "gray70",
+    xmin = ym(202001), xmax = ym(202301),
+    ymin = -Inf, ymax = Inf) +
+  annotate(
+    "text", label = "COVID-19\npandemic",
+    x = ym(202107), y = Inf, color = "black", 
+    family = "serif", lineheight = 0.7, 
+    hjust = 0.5, vjust = 1.2) +
+  geom_bar(
+    aes(y = `DDDs per 100 patient-days`, 
+        group = HosLevel, fill = HosLevel),
+    stat = "summary", fun = "median",
+    position = position_dodge()) +
+  geom_line(
+    aes(y = `Propotion of consumption (%)` * scale, colour = HosLevel)) +
+  geom_point(
+    aes(y = `Propotion of consumption (%)` * scale,
+        group = HosLevel, colour = HosLevel), size = 0.8) +
+  scale_colour_manual(
+    name = "Hospital level", 
+    values = c("#C3B0D2", "#D4242A")) +
+  scale_fill_manual(
+    name = "Hospital level", 
+    values = c("#C3B0D2", "#D4242A")) +
+  labs(x = "", y = "") +
+  facet_wrap(~ AWaRe, ncol = 1, scales = "free_y") +
+  scale_x_date(
+    expand = expansion(c(0.01, 0.01)),
+    date_labels = "%Y", 
+    breaks = seq(ym(201303), ym(202409), "1 year"),
+    date_minor_breaks = "3 months") +
+  theme(
+    legend.position = "bottom",
+    legend.background = element_rect(fill = NA, colour = "black"),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12),
+    strip.text =  element_text(size = 18),
+    axis.ticks.length.x = unit(0.15, "cm"),
+    axis.title = element_text(size = 25),
+    axis.text = element_text(hjust = 0.2),
+    strip.background = element_rect(colour = "grey85", fill = "grey85"),
+    panel.background = element_rect(fill = "grey95"),
+    panel.grid.minor.x = element_blank(),
+    axis.line = element_line(),
+    text = element_text(family = 'serif')) +
+  guides(
+    x = guide_prism_minor(),
+    y = guide_prism_minor()) +
+  facetted_pos_scales(
+    y = list(
+      AWaRe == "Access" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        sec.axis = sec_axis(
+          ~ ./0.6668334, 
+          name = "Propotion of different classification (%)")),
+      AWaRe == "Watch" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        sec.axis = sec_axis(
+          ~ ./0.5608782, 
+          name = "Propotion of different classification (%)")),
+      AWaRe == "Reserve" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 0.5, 0.2),
+        sec.axis = sec_axis(
+          ~ ./1.775759, 
+          name = "Propotion of different classification (%)")),
+      AWaRe == "Not-recommended" ~ scale_y_continuous(
+        expand = expansion(mult = c(0, 0.1)),
+        breaks = seq(0, 6, 2),
+        sec.axis = sec_axis(
+          ~ ./0.5977857, 
+          name = "Propotion of different classification (%)"))
+    ))
+
+# 5 patchwork ----
+ggsave(
+  "Weibin_Fig2.png",
+  width = 13, height = 12, dpi = 500, 
+  plot_grid(
+    plot_all +
+      theme(
+        axis.text.x = element_text(hjust = 0.2, size = 7),
+        axis.text.y = element_text(size = 12),
+        plot.margin = margin(l = 5, t = 5, b = 5, r = -25),
+        legend.box.margin = margin(t = -30)),
+    plot_region +
+      theme(
+        axis.text.x = element_text(hjust = 0.2, size = 7),
+        axis.text.y = element_text(size = 12),
+        plot.margin = margin(l = 0, t = 5, b = 5, r = -25),
+        legend.box.margin = margin(t = -30)),
+    plot_level +
+      theme(
+        axis.text.x = element_text(hjust = 0.2, size = 7),
+        axis.text.y = element_text(size = 12),
+        plot.margin = margin(l = 5, t = 5, b = 5, r = 5),
+        legend.box.margin = margin(t = -30)),
+    nrow = 1,
+    rel_widths = c(1.1, 1, 1.1),
+    labels = c("A", "B", "C"),
+    label_size = 25, 
+    label_fontface = "bold",
+    label_fontfamily = "serif"))
